@@ -50,6 +50,7 @@ class Event
      * @var Collection<int, Profile>
      */
     #[ORM\ManyToMany(targetEntity: Profile::class, inversedBy: 'eventJoined')]
+    #[Groups(['event:detail'])]
     private Collection $participants;
 
     public function __construct()

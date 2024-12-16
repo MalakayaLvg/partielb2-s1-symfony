@@ -36,6 +36,7 @@ class Profile
      * @var Collection<int, Event>
      */
     #[ORM\ManyToMany(targetEntity: Event::class, mappedBy: 'participants')]
+    #[Groups(['profile:get'])]
     private Collection $eventJoined;
 
     public function __construct()

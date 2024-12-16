@@ -1,0 +1,27 @@
+nelmio_api_doc:
+    documentation:
+        servers:
+            - url: https://localhost:8000/
+              description: API sur localhost
+            - url: https://partielb2.malakayalauvergnat.com/
+              description: API sur HTTPS en ligne
+        info:
+            title: API Event
+            description: Rendu partiel B2 semestre 1
+            version: 1.0.0
+            x-build: #CommitHash
+        components:
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+                    bearerFormat: JWT
+        security:
+            - Bearer: [ ]
+    areas: # to filter documented areas
+        path_patterns:
+            - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
+            - ^/register$
+            - ^/api/login$
+
+

@@ -1,1 +1,3 @@
 lexik/jwt-authentication-bundle
+nelmio/api-doc-bundle
+twig asset
