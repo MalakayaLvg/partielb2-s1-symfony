@@ -2,8 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\Profile;
 use App\Entity\User;
+use App\Entity\AuthenticatedUsers;
 use App\Form\RegistrationFormType;
+use App\Repository\ProfileRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,7 +20,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 class RegistrationController extends AbstractController
 {
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, Security $security, EntityManagerInterface $entityManager, SerializerInterface $serializer, UserRepository $userRepository): Response
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager, SerializerInterface $serializer, UserRepository $userRepository): Response
     {
         $user = $serializer->deserialize($request->getContent(),User::class, 'json');
 
@@ -29,9 +32,23 @@ class RegistrationController extends AbstractController
         $plainPassword = $user->getPassword();
 
         $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
+
         $entityManager->persist($user);
         $entityManager->flush();
-        return $this->json($user, Response::HTTP_CREATED, [], ['groups' => ['userjson']]);
+
+
+        $profile = new Profile();
+        $profile->setId($user->getId());
+        $profile->setUserProfile($user);
+        $user->setProfile($profile);
+
+
+        $entityManager->persist($profile);
+        $entityManager->flush();
+
+        return $this->json($user, 201, [], ['groups'=>['user:detail']]);
 
     }
+
+
 }

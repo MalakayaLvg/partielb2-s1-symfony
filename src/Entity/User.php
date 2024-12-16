@@ -3,10 +3,13 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -17,22 +20,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:list','user:detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
+    #[Groups(['user:list','user:detail'])]
     private ?string $username = null;
 
     /**
      * @var list<string> The user roles
      */
     #[ORM\Column]
+    #[Groups(['user:detail'])]
     private array $roles = [];
 
     /**
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Groups(['user:detail'])]
     private ?string $password = null;
+
+    #[ORM\OneToOne(mappedBy: 'userProfile', cascade: ['persist', 'remove'])]
+    #[Groups(['user:detail','user:list'])]
+    private ?Profile $profile = null;
+
 
     public function getId(): ?int
     {
@@ -108,4 +120,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
     }
+
+    public function getProfile(): ?Profile
+    {
+        return $this->profile;
+    }
+
+    public function setProfile(Profile $profile): static
+    {
+        // set the owning side of the relation if necessary
+        if ($profile->getUserProfile() !== $this) {
+            $profile->setUserProfile($this);
+        }
+
+        $this->profile = $profile;
+
+        return $this;
+    }
+
+
 }
