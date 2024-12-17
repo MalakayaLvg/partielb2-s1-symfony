@@ -30,7 +30,6 @@ class RegistrationController extends AbstractController
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: 'username', type: 'string', example: 'john_doe'),
-                    new OA\Property(property: 'email', type: 'string', example: 'john@example.com'),
                     new OA\Property(property: 'password', type: 'string', example: 'mypassword123'),
                 ],
                 type: 'object'
@@ -45,7 +44,6 @@ class RegistrationController extends AbstractController
                     properties: [
                         new OA\Property(property: 'id', type: 'integer', example: 1),
                         new OA\Property(property: 'username', type: 'string', example: 'john_doe'),
-                        new OA\Property(property: 'email', type: 'string', example: 'john@example.com'),
                     ],
                     type: 'object'
                 )

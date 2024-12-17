@@ -13,11 +13,11 @@ class Profile
 {
     #[ORM\Id]
     #[ORM\Column]
-    #[Groups(['event:detail','user:list','profile:get','user:detail'])]
+    #[Groups(['event:detail','user:list','profile:get','user:detail','invitation:detail','event:private','suggestion:detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['user:detail','event:detail','profile:get','user:list'])]
+    #[Groups(['user:detail','event:detail','profile:get','user:list','event:private'])]
     private ?string $displayName = null;
 
 
@@ -39,10 +39,24 @@ class Profile
     #[Groups(['profile:get'])]
     private Collection $eventJoined;
 
+    /**
+     * @var Collection<int, Invitation>
+     */
+    #[ORM\OneToMany(targetEntity: Invitation::class, mappedBy: 'guest', orphanRemoval: true)]
+    private Collection $invitations;
+
+    /**
+     * @var Collection<int, Suggestion>
+     */
+    #[ORM\OneToMany(targetEntity: Suggestion::class, mappedBy: 'profile')]
+    private Collection $suggestions;
+
     public function __construct()
     {
         $this->event = new ArrayCollection();
         $this->eventJoined = new ArrayCollection();
+        $this->invitations = new ArrayCollection();
+        $this->suggestions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -132,6 +146,66 @@ class Profile
     {
         if ($this->eventJoined->removeElement($eventJoined)) {
             $eventJoined->removeParticipant($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Invitation>
+     */
+    public function getInvitations(): Collection
+    {
+        return $this->invitations;
+    }
+
+    public function addInvitation(Invitation $invitation): static
+    {
+        if (!$this->invitations->contains($invitation)) {
+            $this->invitations->add($invitation);
+            $invitation->setGuest($this);
+        }
+
+        return $this;
+    }
+
+    public function removeInvitation(Invitation $invitation): static
+    {
+        if ($this->invitations->removeElement($invitation)) {
+            // set the owning side to null (unless already changed)
+            if ($invitation->getGuest() === $this) {
+                $invitation->setGuest(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Suggestion>
+     */
+    public function getSuggestions(): Collection
+    {
+        return $this->suggestions;
+    }
+
+    public function addSuggestion(Suggestion $suggestion): static
+    {
+        if (!$this->suggestions->contains($suggestion)) {
+            $this->suggestions->add($suggestion);
+            $suggestion->setProfile($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSuggestion(Suggestion $suggestion): static
+    {
+        if ($this->suggestions->removeElement($suggestion)) {
+            // set the owning side to null (unless already changed)
+            if ($suggestion->getProfile() === $this) {
+                $suggestion->setProfile(null);
+            }
         }
 
         return $this;

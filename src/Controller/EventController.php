@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Contributions;
 use App\Entity\Event;
 use App\Entity\Profile;
 use App\Repository\EventRepository;
@@ -49,9 +50,12 @@ class EventController extends AbstractController
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: 'title', type: 'string', example: 'Sample Event'),
+                    new OA\Property(property: 'description', type: 'string', example: 'Sample Event'),
+                    new OA\Property(property: 'place', type: 'string', example: 'Place'),
                     new OA\Property(property: 'startDate', type: 'string', format: 'date-time', example: '2024-06-01T10:00:00'),
-                    new OA\Property(property: 'endDate', type: 'string', format: 'date-time', example: '2024-06-01T12:00:00')
+                    new OA\Property(property: 'endDate', type: 'string', format: 'date-time', example: '2024-06-01T12:00:00'),
+                    new OA\Property(property: 'status', type: 'boolean', default: false),
+                    new OA\Property(property: 'place_type', type: 'boolean', default: false),
                 ],
                 type: 'object'
             )
@@ -75,16 +79,27 @@ class EventController extends AbstractController
         $event = $serializer->deserialize($request->getContent(),Event::class,"json");
 
         $profile = $user->getProfile();
+        $event->setCanceled(false);
         $event->setOrganizer($profile);
-        $event->setStartDate(new \DateTime($data['startDate']));
-        $event->setEndDate(new \DateTime($data['endDate']));
+        $event->setContributions(new Contributions());
 
 
-        $manager->persist($event);
-        $manager->flush();
+        $startDate = new \DateTime($data['startDate']);
+        $endDate = new \DateTime($data['endDate']);
+
+        try {
+            $event->setStartDate($startDate);
+            $event->setEndDate($endDate);
+            $manager->persist($event);
+            $manager->flush();
+
+            return $this->json($event,201, [], ['groups' => ['event:detail']]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
 
-        return $this->json($event,201, [], ['groups' => ['event:detail']]);
+
     }
 
     #[OA\Delete(
@@ -129,7 +144,7 @@ class EventController extends AbstractController
     }
 
     #[OA\Get(
-        path: '/api/event/show/{id}',
+        path: '/api/event/public/show/{id}',
         description: 'Retrieve details of a specific event.',
         summary: 'Show event details',
         tags: ['Event'],
@@ -141,8 +156,8 @@ class EventController extends AbstractController
             new OA\Response(response: 401, description: 'Unauthorized')
         ]
     )]
-    #[Route('/api/event/show/{id}', name: 'app_event_show', methods: ['GET'])]
-    public function show(Event $event): Response
+    #[Route('/api/event/public/show/{id}', name: 'app_event_public_show', methods: ['GET'])]
+    public function showEventPublic(Event $event): Response
     {
         $user = $this->getUser();
         if (!$user){
@@ -186,31 +201,36 @@ class EventController extends AbstractController
         return $this->json(['Participant add !',$event], 200,[],['groups'=>['event:detail']]);
     }
 
-    #[Route('/api/event/{eventId}/invite/participant/{profileId}', name: 'app_event_add_participant', methods: ['PUT'])]
-    public function eventInviteParticipant(int $eventId,int $profileId, EventRepository $eventRepository, ProfileRepository $profileRepository,EntityManagerInterface $manager): Response
-    {
 
+    #[OA\Get(
+        path: '/api/event/private/show/{id}',
+        description: 'Retrieve details of a private event. Requires authentication.',
+        summary: 'Show private event details',
+        tags: ['Event'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                description: 'ID of the private event to retrieve',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Private event details retrieved'),
+            new OA\Response(response: 401, description: 'Unauthorized - Token missing or invalid')
+        ]
+    )]
+    #[Route('/api/event/private/show/{id}', name: 'app_event_private_show', methods: ['GET'])]
+    public function showEventPrivate(Event $event): Response
+    {
         $user = $this->getUser();
         if (!$user){
             return $this->json('You must be logged in to make this request.',401);
         }
-        $userId = $user->getId();
+//        $profile = $user->getProfile();
 
-        $profile = $profileRepository->find($profileId);
-        $event = $eventRepository->find($eventId);
-
-        $eventOrganizerId = $event->getOrganizer()->getId();
-
-        if ($userId !== $eventOrganizerId){
-            return $this->json('You have to be the organizer to invite participant',401);
-        }
-
-        $event->addParticipant($profile);
-        $manager->persist($event);
-        $manager->flush();
-
-        return $this->json(['Participant invited successfully !',$event], 200,[],['groups'=>['event:detail']]);
+        return $this->json([$event], 200,[],['groups'=>['event:private']]);
     }
-
 
 }
